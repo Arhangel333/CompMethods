@@ -130,6 +130,8 @@ def calculate_determinant(P, U, log_file):
     det_P = (-1) ** permutations
     log_file.write(f"Число перестановок: {permutations}\n")
     log_file.write(f"det(P) = (-1)^{permutations} = {det_P}\n")
+
+   
     
     # Определитель U - произведение диагональных элементов
     det_U = 1.0
@@ -141,8 +143,18 @@ def calculate_determinant(P, U, log_file):
     log_file.write(f"det(U) = {det_U:.6f}\n")
     
     det_A = det_P * det_U
-    log_file.write(f"\n🔷 det(A) = det(P) × det(U) = {det_P} × {det_U:.6f} = {det_A:.6f}\n")
-    
+        # Проверка на вырожденность (с учётом погрешности)
+    epsilon = 1e-10  # порог для определения "близости к нулю"
+    if abs(det_A) < epsilon:
+        log_file.write(f"\n⚠️ МАТРИЦА ВЫРОЖДЕНА (det ≈ {det_A:.2e})\n")
+        print(f"\n⚠️ МАТРИЦА ВЫРОЖДЕНА (det ≈ {det_A:.2e})\n")
+        log_file.write("Обратная матрица не существует или будет вычислена с большой погрешностью\n")
+        exit(0)
+    else:
+        log_file.write(f"\n✅ Матрица невырожденная (det ≠ 0)\n")
+        print(f"\n✅ Матрица невырожденная (det ≠ 0)\n")
+
+
     return det_A, det_U, det_P, permutations
 
 
