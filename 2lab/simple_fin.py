@@ -222,8 +222,10 @@ def input_matrix():
 
 def main():
     print("=" * 70)
+    print("="*70)
     print("МЕТОД ПРОСТЫХ ИТЕРАЦИЙ С АВТОМАТИЧЕСКОЙ ПЕРЕСТАНОВКОЙ")
     print("=" * 70)
+    print("="*70)
     
     while True:
         try:

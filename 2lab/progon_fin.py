@@ -171,9 +171,8 @@ def solve_tridiagonal(a, b, c, d):
 
 def print_system(A, b, n):
     """Вывод системы уравнений"""
-    print("\n" + "="*70)
     print("ИСХОДНАЯ СИСТЕМА УРАВНЕНИЙ")
-    print("="*70)
+    print("-"*70)
     
     # Находим максимальную ширину для форматирования
     max_width = 0
@@ -230,8 +229,11 @@ def main():
     print_tridiagonal(a, b_diag, c, b, n)
     
     # Решение методом прогонки
+    print("="*70)
+    print("="*70)
     print("РЕШЕНИЕ МЕТОДОМ ПРОГОНКИ:")
-    print("-"*70)
+    print("="*70)
+    print("="*70)
     
     x, det = solve_tridiagonal(a, b_diag, c, b)
     

@@ -195,6 +195,33 @@ def input_matrix():
     
     return A
 
+# Функция для извлечения собственных значений из квазидиагональной матрицы
+def extract_eigenvalues_from_quasi_diag(A, epsilon=1e-6):
+    n = A.shape[0]
+    eigenvalues = []
+    i = 0
+    while i < n:
+        if i < n-1 and abs(A[i+1, i]) > epsilon:  # нашли блок 2×2
+            # вычисляем комплексную пару
+            a, b = A[i, i], A[i, i+1]
+            c, d = A[i+1, i], A[i+1, i+1]
+            trace = (a + d) / 2
+            det = a*d - b*c
+            disc = trace**2 - det
+            if disc < 0:  # комплексные
+                sqrt_disc = np.sqrt(-disc) * 1j
+                eigenvalues.append(trace + sqrt_disc)
+                eigenvalues.append(trace - sqrt_disc)
+            else:  # вещественные
+                sqrt_disc = np.sqrt(disc)
+                eigenvalues.append(trace + sqrt_disc)
+                eigenvalues.append(trace - sqrt_disc)
+            i += 2
+        else:  # блок 1×1
+            eigenvalues.append(A[i, i])
+            i += 1
+    return np.array(eigenvalues)
+
 # --- ТЕСТ НА ПРИМЕРЕ 4x4 ---
 if __name__ == "__main__":
     # Матрица из примера (симметричная)
@@ -210,7 +237,7 @@ if __name__ == "__main__":
     print("Исходная матрица A:")
     print(A)
     print("-" * 50)
-
+    """ 
     print("="*70)
     print("="*70)
     print("ПОИСК СОБСТВЕННЫХ ЗНАЧЕНИЙ МЕТОДОМ ВРАЩЕНИЙ"*70)
@@ -243,8 +270,8 @@ if __name__ == "__main__":
 
 
 
-    """ ##-----------------------------------------------------
-    
+    ##-----------------------------------------------------
+    """
     print("="*70)
     print("="*70)
     print("ПОИСК СОБСТВЕННЫХ ЗНАЧЕНИЙ QR-АЛГОРИТМОМ"*70)
@@ -273,4 +300,18 @@ if __name__ == "__main__":
     print("\n--- ПРОВЕРКА ---")
     print("Наши собственные значения (отсортированы):", our_vals_sorted)
     print("Собственные значения от numpy:", true_vals_sorted)
-    print("Разница:", np.abs(our_vals_sorted - true_vals_sorted)) """
+    print("Разница:", np.abs(our_vals_sorted - true_vals_sorted))
+
+    eigenvalues = extract_eigenvalues_from_quasi_diag(final_matrix)
+
+    for i, val in enumerate(eigenvalues):
+        print(f"λ{i+1} = {val:.6f}")
+    
+    # Проверка: сравниваем с numpy.linalg.eigvals
+    true_vals = np.linalg.eigvals(A)
+    true_vals_sorted = np.sort(true_vals)
+    our_vals_sorted = np.sort(eigenvalues)
+    
+    print("Наши собственные значения для мнимых решений (отсортированы):", our_vals_sorted)
+    print("Собственные значения от numpy:", true_vals_sorted)
+    print("Разница:", np.abs(our_vals_sorted - true_vals_sorted))
