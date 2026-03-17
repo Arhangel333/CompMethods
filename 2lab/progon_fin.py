@@ -248,6 +248,8 @@ def main():
     print("\n" + "="*70)
     print("ПРОВЕРКА РЕШЕНИЯ (A·x - b)")
     print("="*70)
+
+    ##print(A)
     
     residual = A @ x - b
     max_residual = np.max(np.abs(residual))
