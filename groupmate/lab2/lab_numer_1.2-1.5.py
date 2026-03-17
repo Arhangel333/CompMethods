@@ -255,6 +255,27 @@ print("Метод вращения Якоби:")
 print("Собственные значения:", eig_jacobi)
 print("Количество итераций:", iter_jacobi)
 
+A_sym = np.array([
+    [-3, -5, -4,  0, -3],
+    [11,  7,  1,  2,  2],
+    [-2,  0, -1,  6,  5],
+    [ 3,  5,  -4,  1,  0],
+    [4,  3,  -5,  3, -2]
+], dtype=float)
+
+A_sym = np.array([
+    [ 2, -5, -4, 6, 1 ],
+    [ 4, 3, 1, -5, 2 ],
+    [ -2, 3, 4, 2, -5 ],
+    [ 2, 0, -4, 1, 3 ],
+    [ 1, 3, -5, -7, -2]
+], dtype=float)
+
+print("Задание 7.1. Собственные значения симметричной матрицы (вариант 11)")
+print("Входная матрица A:")
+print(A_sym)
+print()
+
 # QR-алгоритм
 T_qr, iter_qr = qr_algorithm(A_sym.copy(), eps_eig)
 print("\nQR-алгоритм:")
@@ -264,3 +285,21 @@ print("Количество итераций:", iter_qr)
 
 # Для проверки
 print("\nДля проверки (numpy.linalg.eigvalsh):", np.linalg.eigvalsh(A_sym))
+
+print("\n" + "="*50)
+print("АРИФМЕТИЧЕСКАЯ ПРОВЕРКА")
+print("="*50)
+
+# След матрицы
+trace_A = np.trace(A_sym)
+sum_eigenvals = np.sum(np.diag(T_qr))
+print(f"След матрицы A: {trace_A:.6f}")
+print(f"Сумма собственных значений: {sum_eigenvals}")
+print(f"Разница (модуль): {abs(trace_A - sum_eigenvals):.2e}")
+
+""" # Определитель и произведение
+det_A = np.linalg.det(A_sym)
+prod_eigenvals = np.prod(np.diag(T_qr))
+print(f"\nОпределитель матрицы A: {det_A:.6f}")
+print(f"Произведение собственных значений: {prod_eigenvals}")
+print(f"Разница (модуль): {abs(det_A - prod_eigenvals):.2e}") """

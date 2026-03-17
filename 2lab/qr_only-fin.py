@@ -274,7 +274,7 @@ if __name__ == "__main__":
     """
     print("="*70)
     print("="*70)
-    print("ПОИСК СОБСТВЕННЫХ ЗНАЧЕНИЙ QR-АЛГОРИТМОМ"*70)
+    print("ПОИСК СОБСТВЕННЫХ ЗНАЧЕНИЙ QR-АЛГОРИТМОМ")
     print("="*70)
     print("="*70)
 
@@ -311,7 +311,25 @@ if __name__ == "__main__":
     true_vals = np.linalg.eigvals(A)
     true_vals_sorted = np.sort(true_vals)
     our_vals_sorted = np.sort(eigenvalues)
-    
+
     print("Наши собственные значения для мнимых решений (отсортированы):", our_vals_sorted)
     print("Собственные значения от numpy:", true_vals_sorted)
     print("Разница:", np.abs(our_vals_sorted - true_vals_sorted))
+
+    print("\n" + "="*50)
+print("АРИФМЕТИЧЕСКАЯ ПРОВЕРКА")
+print("="*50)
+
+# След матрицы
+trace_A = np.trace(A)
+sum_eigenvals = np.sum(eigenvalues)
+print(f"След матрицы A: {trace_A:.6f}")
+print(f"Сумма собственных значений: {sum_eigenvals}")
+print(f"Разница (модуль): {abs(trace_A - sum_eigenvals):.2e}")
+
+# Определитель и произведение
+det_A = np.linalg.det(A)
+prod_eigenvals = np.prod(eigenvalues)
+print(f"\nОпределитель матрицы A: {det_A:.6f}")
+print(f"Произведение собственных значений: {prod_eigenvals}")
+print(f"Разница (модуль): {abs(det_A - prod_eigenvals):.2e}")
