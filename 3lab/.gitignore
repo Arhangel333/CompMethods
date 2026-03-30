@@ -1,0 +1,31 @@
+# Виртуальное окружение
+venv/
+env/
+.env/
+.venv/
+
+# Python кэш
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Файлы IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Временные файлы
+temp/
+*.tmp
+*.log
+
+# Сгенерированные изображения (если не хотите хранить в Git)
+*.png
+*.jpg
+*.pdf
+
+# Файлы ОС
+.DS_Store
+Thumbs.db
