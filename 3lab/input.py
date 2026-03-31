@@ -27,6 +27,54 @@ def input_matrix():
     
     return A
 
+class InputData:
+    @staticmethod
+    def plot_all(self, x_star=None, degrees=[1, 2, 3]):
+        """
+        Строит графики всех аппроксимирующих многочленов и исходных точек
+        """
+        plt.figure(figsize=(12, 8))
+        
+        # Исходные точки
+        plt.scatter(self.x, self.y, color='black', s=100, label='Исходные данные', zorder=5)
+        
+        # Гладкие точки для построения графиков
+        x_smooth = np.linspace(min(self.x) - 0.5, max(self.x) + 0.5, 500)
+        
+        # Цвета для разных степеней
+        colors = ['red', 'green', 'blue']
+        
+        for deg, color in zip(degrees, colors[:len(degrees)]):
+            coeffs = self.fit_polynomial(deg)
+            y_smooth = np.polyval(coeffs[::-1], x_smooth)
+            plt.plot(x_smooth, y_smooth, color=color, linewidth=2, 
+                    label=f'Многочлен {deg}-й степени (R²={self.compute_r2(coeffs):.4f})')
+        
+        # Отмечаем точку x*, если задана
+        if x_star is not None:
+            plt.axvline(x=x_star, color='purple', linestyle='--', alpha=0.7, 
+                        label=f'x* = {x_star}')
+            
+            # Отмечаем значения многочленов в x*
+            for deg, color in zip(degrees, colors[:len(degrees)]):
+                coeffs = self.fit_polynomial(deg)
+                value = self.evaluate(coeffs, x_star)
+                plt.plot(x_star, value, 'o', color=color, markersize=10, zorder=10)
+                plt.annotate(f'P_{deg}({x_star})={value:.3f}', 
+                            xy=(x_star, value), xytext=(5, 5),
+                            textcoords='offset points', fontsize=9, color=color)
+        
+        plt.xlabel('x', fontsize=12)
+        plt.ylabel('y', fontsize=12)
+        plt.title('Аппроксимация табличных данных методом наименьших квадратов', fontsize=14)
+        plt.legend(loc='best', fontsize=10)
+        plt.grid(True, alpha=0.3)
+        plt.tight_layout()
+        
+        # Сохраняем график
+        plt.savefig('least_squares_approximation.png', dpi=150, bbox_inches='tight')
+        plt.show()
+
 # 12 variant
 # L_and_N.py
 

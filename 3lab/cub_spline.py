@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib import rcParams
 import input
 
 class CubicSpline:
@@ -163,6 +165,53 @@ class CubicSpline:
         return error_estimate
 
 
+    def plot_spline(self, x_star=None, save_path="Spline.png"):
+        """
+        Строит график кубического сплайна и исходных точек
+        
+        x_star: точка для отображения (опционально)
+        save_path: путь для сохранения графика (опционально)
+        """
+        plt.figure(figsize=(12, 8))
+        
+        # Исходные точки
+        plt.scatter(self.x, self.y, color='black', s=100, 
+                label='Исходные данные', zorder=5)
+        
+        # Гладкие точки для построения графика сплайна
+        x_smooth = np.linspace(min(self.x), max(self.x), 500)
+        y_smooth = []
+        
+        for xi in x_smooth:
+            val, _ = self.evaluate(xi)
+            y_smooth.append(val)
+        
+        plt.plot(x_smooth, y_smooth, color='red', linewidth=2, 
+                label='Кубический сплайн (естественный)')
+        
+        # Отмечаем точку x*, если задана
+        if x_star is not None:
+            plt.axvline(x=x_star, color='purple', linestyle='--', alpha=0.7,
+                    label=f'x* = {x_star}')
+            value, segment = self.evaluate(x_star)
+            plt.plot(x_star, value, 'o', color='green', markersize=10, zorder=10)
+            plt.annotate(f'S({x_star})={value:.4f}',
+                        xy=(x_star, value), xytext=(5, 5),
+                        textcoords='offset points', fontsize=9, color='green')
+        
+        plt.xlabel('x', fontsize=12)
+        plt.ylabel('y', fontsize=12)
+        plt.title('Естественный кубический сплайн дефекта 1', fontsize=14)
+        plt.legend(loc='best', fontsize=10)
+        plt.grid(True, alpha=0.3)
+        plt.tight_layout()
+        
+        if save_path:
+            plt.savefig(save_path, dpi=150, bbox_inches='tight')
+            print(f"График сохранен как {save_path}")
+        
+
+
 def main():
     # Табличные данные (пример)
     """ x_values = [0, 1, 2, 3, 4]
@@ -208,6 +257,8 @@ def main():
     print("ОЦЕНКА ПОГРЕШНОСТИ")
     print("="*80)
     print(f"Приближенная оценка погрешности: |R(x*)| ≤ {error:.8f}")
+
+    spline.plot_spline(x_star)
 
 
 if __name__ == "__main__":

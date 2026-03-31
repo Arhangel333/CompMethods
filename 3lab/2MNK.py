@@ -165,7 +165,6 @@ class LeastSquares:
         
         # Сохраняем график
         plt.savefig('least_squares_approximation.png', dpi=150, bbox_inches='tight')
-        plt.show()
 
 
 def main():

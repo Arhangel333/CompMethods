@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib import rcParams
 import input
 
 class Interpolation:
@@ -21,9 +23,9 @@ class Interpolation:
         indices.sort()  # сортируем по возрастанию x
 
         return indices
-
-    def lagrange(self, x_points, y_points, x_star):
-        """Интерполяционный многочлен Лагранжа"""
+        
+    """ def lagrange(self, x_points, y_points, x_star):
+        
         n = len(x_points)
         result = 0
 
@@ -35,7 +37,63 @@ class Interpolation:
                     term *= (x_star - x_points[j]) / (x_points[i] - x_points[j])
             result += term
 
-        return result
+        return result """
+        
+
+    def lagrange(self, x_points, y_points, x_star):
+        """
+        Интерполяционный многочлен Лагранжа
+        Возвращает: (значение в точке x_star, коэффициенты многочлена)
+        
+        Коэффициенты многочлена Лагранжа в форме:
+        L(x) = c0 + c1*x + c2*x^2 + ... + cn*x^n
+        """
+        n = len(x_points)
+        result = 0
+        
+        # Собираем все слагаемые для последующего вычисления коэффициентов
+        # Каждый базисный полином ℓ_i(x) — это многочлен степени n-1
+        # Мы будем хранить коэффициенты в массиве coeffs_total
+        
+        # Инициализируем массив коэффициентов нулями
+        coeffs_total = np.zeros(n)
+        
+        for i in range(n):
+            # Базисный полином Лагранжа ℓ_i(x)
+            # Сначала создаем полином, который начинается как 1
+            poly_coeffs = np.array([1.0])  # коэффициенты от младшей степени к старшей
+            
+            for j in range(n):
+                if j != i:
+                    # Умножаем на (x - x_j) / (x_i - x_j)
+                    # (x - x_j) = -x_j + 1*x
+                    factor = np.array([-x_points[j], 1.0])  # коэффициенты: [-x_j, 1]
+                    # Делим на знаменатель
+                    factor = factor / (x_points[i] - x_points[j])
+                    # Умножаем полиномы
+                    poly_coeffs = np.polymul(poly_coeffs, factor)
+            
+            # Умножаем на y_i
+            poly_coeffs = poly_coeffs * y_points[i]
+            
+            # Добавляем к общим коэффициентам
+            # Приводим к одинаковой длине
+            if len(poly_coeffs) > len(coeffs_total):
+                coeffs_total = np.pad(coeffs_total, (0, len(poly_coeffs) - len(coeffs_total)), 'constant')
+            coeffs_total[:len(poly_coeffs)] += poly_coeffs
+            
+            # Вычисляем значение в точке x_star для текущего слагаемого
+            term = y_points[i]
+            for j in range(n):
+                if j != i:
+                    term *= (x_star - x_points[j]) / (x_points[i] - x_points[j])
+            result += term
+        
+        # Обрезаем лишние нули в конце
+        while len(coeffs_total) > 1 and abs(coeffs_total[-1]) < 1e-12:
+            coeffs_total = coeffs_total[:-1]
+        
+        return result, coeffs_total
 
     def newton(self, x_points, y_points, x_star):
         """Интерполяционный многочлен Ньютона"""
@@ -102,9 +160,11 @@ class Interpolation:
         print(f"Точка интерполяции x* = {x_star}")
 
         # Метод Лагранжа
-        lagrange_result = self.lagrange(x_nodes, y_nodes, x_star)
+        lagrange_result, coefficients = self.lagrange(x_nodes, y_nodes, x_star)
         print(f"\nМногочлен Лагранжа {degree}-й степени:")
         print(f"  L_{degree}({x_star}) = {lagrange_result:.6f}")
+        for i, coeff in enumerate(coefficients):
+            print(f"    a_{i} = {coeff:.6f}")
 
         # Метод Ньютона
         newton_result, coefficients = self.newton(x_nodes, y_nodes, x_star)
@@ -134,6 +194,71 @@ class Interpolation:
                 print(f"  |R_{degree}({x_star})| ≈ {error_estimate:.6f}")
 
         return lagrange_result, newton_result
+
+    def plot_interpolation(self, x_star=None, degrees=[2, 3]):
+        """
+        Строит графики интерполяционных многочленов Лагранжа и исходных точек
+        degrees: степени многочленов (2 и 3)
+        """
+        plt.figure(figsize=(12, 8))
+        
+        # Исходные точки
+        plt.scatter(self.x, self.y, color='black', s=100, 
+                label='Исходные данные', zorder=5)
+        
+        # Гладкие точки для построения графиков
+        x_smooth = np.linspace(min(self.x) - 0.3, max(self.x) + 0.3, 500)
+        
+        # Цвета для разных степеней
+        colors = ['red', 'green', 'blue']
+        
+        for deg, color in zip(degrees, colors[:len(degrees)]):
+            # Для каждой точки x_smooth строим интерполяционный многочлен
+            y_smooth = []
+            for xi in x_smooth:
+                # Выбираем узлы для данной точки
+                indices = self.choose_nodes(xi, deg)
+                x_nodes = [self.x[i] for i in indices]
+                y_nodes = [self.y[i] for i in indices]
+                # Сортируем узлы по возрастанию x
+                sorted_pairs = sorted(zip(x_nodes, y_nodes))
+                x_sorted = [p[0] for p in sorted_pairs]
+                y_sorted = [p[1] for p in sorted_pairs]
+                # Вычисляем значение многочлена Лагранжа
+                val, coeffs_lagrange = self.lagrange(x_sorted, y_sorted, xi)
+                y_smooth.append(val)
+            
+            plt.plot(x_smooth, y_smooth, color=color, linewidth=2,
+                    label=f'Интерполяция {deg}-й степени (Лагранж)')
+        
+        # Отмечаем точку x*, если задана
+        if x_star is not None:
+            plt.axvline(x=x_star, color='purple', linestyle='--', alpha=0.7,
+                    label=f'x* = {x_star}')
+            
+            for deg, color in zip(degrees, colors[:len(degrees)]):
+                indices = self.choose_nodes(x_star, deg)
+                x_nodes = [self.x[i] for i in indices]
+                y_nodes = [self.y[i] for i in indices]
+                sorted_pairs = sorted(zip(x_nodes, y_nodes))
+                x_sorted = [p[0] for p in sorted_pairs]
+                y_sorted = [p[1] for p in sorted_pairs]
+                value, coeffs_lagrange = self.lagrange(x_sorted, y_sorted, x_star)
+                plt.plot(x_star, value, 'o', color=color, markersize=10, zorder=10)
+                plt.annotate(f'P_{deg}({x_star})={value:.3f}',
+                            xy=(x_star, value), xytext=(5, 5),
+                            textcoords='offset points', fontsize=9, color=color)
+        
+        plt.xlabel('x', fontsize=12)
+        plt.ylabel('y', fontsize=12)
+        plt.title('Интерполяция табличных данных (многочлены Лагранжа)', fontsize=14)
+        plt.legend(loc='best', fontsize=10)
+        plt.grid(True, alpha=0.3)
+        plt.tight_layout()
+        
+        # Сохраняем график
+        plt.savefig('interpolation_graph.png', dpi=150, bbox_inches='tight')
+
 
 def main():
     """  # Задаем табличные данные (пример)
@@ -182,6 +307,8 @@ def main():
     print(f"\nСогласованность методов Лагранжа и Ньютона:")
     print(f"  Разница для 2-й степени:  {abs(lagrange_2 - newton_2):.10f}")
     print(f"  Разница для 3-й степени:  {abs(lagrange_3 - newton_3):.10f}")
+
+    interp.plot_interpolation(x_star, degrees=[2, 3])
 
 if __name__ == "__main__":
     main()
