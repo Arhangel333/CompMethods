@@ -100,10 +100,8 @@ class CubicSpline:
         
         return result, i
     
-    def print_coefficients(self):
-        """
-        Выводит коэффициенты сплайна на всех отрезках
-        """
+    """ def print_coefficients(self):
+        
         print("\n" + "="*80)
         print("КОЭФФИЦИЕНТЫ КУБИЧЕСКОГО СПЛАЙНА")
         print("="*80)
@@ -122,7 +120,99 @@ class CubicSpline:
             S_left = self.evaluate(self.x[i])[0]
             S_right = self.evaluate(self.x[i+1])[0]
             print(f"  Проверка: S({self.x[i]}) = {S_left:.8f} (должно быть {self.y[i]:.8f})")
-            print(f"           S({self.x[i+1]}) = {S_right:.8f} (должно быть {self.y[i+1]:.8f})")
+            print(f"           S({self.x[i+1]}) = {S_right:.8f} (должно быть {self.y[i+1]:.8f})") """
+
+    def print_coefficients(self):
+        """
+        Выводит коэффициенты сплайна и уравнения на всех отрезках
+        """
+        print("\n" + "="*80)
+        print("КОЭФФИЦИЕНТЫ КУБИЧЕСКОГО СПЛАЙНА")
+        print("="*80)
+        print(f"Форма сплайна на отрезке [x_i, x_i_next]:")
+        print(f"S_i(x) = a_i + b_i*(x-x_i) + c_i*(x-x_i)^2 + d_i*(x-x_i)^3")
+        print("-"*80)
+        
+        for i in range(len(self.a)):
+            print(f"\n{'='*60}")
+            print(f"Отрезок {i}: [{self.x[i]:.4f}, {self.x[i+1]:.4f}]")
+            print(f"{'='*60}")
+            
+            print(f"\n  Коэффициенты сплайна:")
+            print(f"    a_{i} = {self.a[i]:.8f}  (значение в левом узле)")
+            print(f"    b_{i} = {self.b[i]:.8f}  (коэффициент при (x-x_i))")
+            print(f"    c_{i} = {self.c[i]:.8f}  (коэффициент при (x-x_i)²)")
+            print(f"    d_{i} = {self.d[i]:.8f}  (коэффициент при (x-x_i)³)")
+            
+            # Уравнение сплайна
+            print(f"\n  Уравнение сплайна S_{i}(x):")
+            if abs(self.b[i]) < 1e-12 and abs(self.c[i]) < 1e-12 and abs(self.d[i]) < 1e-12:
+                print(f"    S_{i}(x) = {self.a[i]:.8f}")
+            else:
+                eq = f"    S_{i}(x) = {self.a[i]:.8f}"
+                if self.b[i] >= 0:
+                    eq += f" + {self.b[i]:.8f}·(x - {self.x[i]})"
+                else:
+                    eq += f" - {abs(self.b[i]):.8f}·(x - {self.x[i]})"
+                
+                if abs(self.c[i]) > 1e-12:
+                    if self.c[i] >= 0:
+                        eq += f" + {self.c[i]:.8f}·(x - {self.x[i]})²"
+                    else:
+                        eq += f" - {abs(self.c[i]):.8f}·(x - {self.x[i]})²"
+                
+                if abs(self.d[i]) > 1e-12:
+                    if self.d[i] >= 0:
+                        eq += f" + {self.d[i]:.8f}·(x - {self.x[i]})³"
+                    else:
+                        eq += f" - {abs(self.d[i]):.8f}·(x - {self.x[i]})³"
+                print(eq)
+            
+            # Первая производная
+            print(f"\n  Первая производная S'_{i}(x):")
+            if abs(self.b[i]) < 1e-12 and abs(self.c[i]) < 1e-12 and abs(self.d[i]) < 1e-12:
+                print(f"    S'_{i}(x) = 0")
+            else:
+                eq = f"    S'_{i}(x) = {self.b[i]:.8f}"
+                if abs(self.c[i]) > 1e-12:
+                    if self.c[i] >= 0:
+                        eq += f" + {2*self.c[i]:.8f}·(x - {self.x[i]})"
+                    else:
+                        eq += f" - {abs(2*self.c[i]):.8f}·(x - {self.x[i]})"
+                
+                if abs(self.d[i]) > 1e-12:
+                    if self.d[i] >= 0:
+                        eq += f" + {3*self.d[i]:.8f}·(x - {self.x[i]})²"
+                    else:
+                        eq += f" - {abs(3*self.d[i]):.8f}·(x - {self.x[i]})²"
+                print(eq)
+            
+            # Вторая производная
+            print(f"\n  Вторая производная S''_{i}(x):")
+            if abs(self.c[i]) < 1e-12 and abs(self.d[i]) < 1e-12:
+                print(f"    S''_{i}(x) = 0")
+            else:
+                eq = f"    S''_{i}(x) = {2*self.c[i]:.8f}"
+                if abs(self.d[i]) > 1e-12:
+                    if self.d[i] >= 0:
+                        eq += f" + {6*self.d[i]:.8f}·(x - {self.x[i]})"
+                    else:
+                        eq += f" - {abs(6*self.d[i]):.8f}·(x - {self.x[i]})"
+                print(eq)
+            
+            # Третья производная
+            print(f"\n  Третья производная S'''_{i}(x):")
+            if abs(self.d[i]) < 1e-12:
+                print(f"    S'''_{i}(x) = 0")
+            else:
+                print(f"    S'''_{i}(x) = {6*self.d[i]:.8f}")
+            
+            # Проверка на концах отрезка
+            S_left, _ = self.evaluate(self.x[i])
+            S_right, _ = self.evaluate(self.x[i+1])
+            print(f"\n  Проверка:")
+            print(f"    S({self.x[i]}) = {S_left:.8f} (должно быть {self.y[i]:.8f})")
+            print(f"    S({self.x[i+1]}) = {S_right:.8f} (должно быть {self.y[i+1]:.8f})")
     
     def print_second_derivatives(self):
         """

@@ -174,6 +174,52 @@ class Interpolation:
         for i, coeff in enumerate(coefficients):
             print(f"    a_{i} = {coeff:.6f}")
 
+        print(f"\n  Уравнение Ньютона (интерполяционная форма):")
+        newton_eq = f"    P_{degree}(x) = {coefficients[0]:.8f}"
+        for i in range(1, degree + 1):
+            # Формируем произведение (x - x_0)(x - x_1)...(x - x_{i-1})
+            product_str = ""
+            for j in range(i):
+                if j == 0:
+                    product_str = f"(x - {x_nodes[j]})"
+                else:
+                    product_str += f"(x - {x_nodes[j]})"
+            
+            if coefficients[i] >= 0:
+                newton_eq += f" + {coefficients[i]:.8f}·{product_str}"
+            else:
+                newton_eq += f" - {abs(coefficients[i]):.8f}·{product_str}"
+        print(newton_eq)
+        
+        # Вывод уравнения Лагранжа
+        print(f"\n  Уравнение Лагранжа (сумма базисных полиномов):")
+        print(f"    L_{degree}(x) =", end="")
+        
+        for i in range(len(x_nodes)):
+            # Формируем базисный полином ℓ_i(x)
+            numerator = ""
+            denominator = ""
+            for j in range(len(x_nodes)):
+                if j != i:
+                    if numerator:
+                        numerator += f"(x - {x_nodes[j]})"
+                    else:
+                        numerator = f"(x - {x_nodes[j]})"
+                    
+                    if denominator:
+                        denominator += f"({x_nodes[i]} - {x_nodes[j]})"
+                    else:
+                        denominator = f"({x_nodes[i]} - {x_nodes[j]})"
+            
+            if i == 0:
+                print(f" {y_nodes[i]}·[{numerator}/{denominator}]", end="")
+            else:
+                if y_nodes[i] >= 0:
+                    print(f" + {y_nodes[i]}·[{numerator}/{denominator}]", end="")
+                else:
+                    print(f" - {abs(y_nodes[i])}·[{numerator}/{denominator}]", end="")
+        print()
+        
         # Оценка погрешности
         if degree < len(self.x) - 1:
             # Строим многочлен следующей степени для оценки погрешности

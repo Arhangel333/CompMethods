@@ -104,7 +104,7 @@ def qr_algorithm_adaptive(A, epsilon=0.0001, max_iter=1000):
         Q, R = householder_qr(A_k)
         A_next = R @ Q
 
-        if has_complex:
+        if 0:
             # Для несимметричных: проверяем элементы где i - j >= 2 (вторая поддиагональ и ниже)
             max_below_second = 0
             for i in range(n):
