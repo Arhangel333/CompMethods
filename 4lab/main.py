@@ -92,11 +92,18 @@ def runge_romberg(I_h, I_half, p):
 # ------------------------------------------------------------
 # 4. Основной цикл подбора шага
 # ------------------------------------------------------------
+print("\nФункция:")
+print(f"F = ∫_{a}^{b}", f_str.replace("math.", ""))
 print("\nНачинаем подбор шага...\n")
 
+n_rect = None
+n_trap = None
+n_simp = None
 
+iter = 0
 
 for iteration in range(max_iter):
+    iter +=1
     h = (b - a) / n
 
     # Вычисляем интегралы для текущего n
@@ -122,7 +129,7 @@ for iteration in range(max_iter):
     I_simp_fine = runge_romberg(I_simp, I_simp2, p=4)
 
     # Вывод на экран текущей итерации
-    print(f"n = {n:4d}  h = {h:.6f}")
+    print(f"n = {n:4d}  h = {h:.6f} iter = {iter}")
     print(f"  Прямоугольники:  I={I_rect:.8f}  разница={err_rect:.2e}  уточнённое={I_rect_fine:.8f}")
     print(f"  Трапеции:        I={I_trap:.8f}  разница={err_trap:.2e}  уточнённое={I_trap_fine:.8f}")
     print(f"  Симпсон:         I={I_simp:.8f}  разница={err_simp:.2e}  уточнённое={I_simp_fine:.8f}")
@@ -136,8 +143,20 @@ for iteration in range(max_iter):
     stop_trap = (err_trap / 3) < eps
     stop_simp = (err_simp / 15) < eps
 
+    if stop_rect and n_rect is None:
+        n_rect = n
+    if stop_trap and n_trap is None:
+        n_trap = n
+    if stop_simp and n_simp is None:
+        n_simp = n
+
+
+
     if stop_rect and stop_trap and stop_simp:
         print("Точность достигнута для всех методов!")
+        print(f"Метод средних прямоугольников: ",n_rect)
+        print("Метод трапеций: ", n_trap)
+        print("Метод Симпсона: ", n_simp)
         break
 
     # Иначе удваиваем n и продолжаем
