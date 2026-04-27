@@ -1,0 +1,1 @@
+rm first_out.txt second_out.txt convergence.png 1graph.png 2graph.png
