@@ -1,8 +1,10 @@
+eps = "0.001"
+output = 0
+
+
 # first part
 
 f_input = "log(x**2+1)/log(10)-x**2+2*x+10"
-eps = "0.001"
-
 left = "-3"
 right = "6"
 

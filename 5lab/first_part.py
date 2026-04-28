@@ -70,7 +70,7 @@ class NonlinearSolver:
         
         return phi_prime0 < 1
     
-    def find_intervals(self, x_range: Tuple[float, float], n_points: int = 1000) -> list:
+    def find_intervals(self, x_range: Tuple[float, float], n_points: int = 10) -> list:
         """
         Автоматический поиск отрезков, содержащих корни
         """
@@ -82,11 +82,13 @@ class NonlinearSolver:
             f1 = self.f(x_vals[i])
             f2 = self.f(x_vals[i + 1])
             
+            print(f"f1({x_vals[i]}) = {f1} f2({x_vals[i + 1]}) = {f2}")
             if f1 * f2 < 0:
                 intervals.append([x_vals[i], x_vals[i + 1]])
             elif abs(f1) < 1e-10:
                 intervals.append([x_vals[i], x_vals[i]])
-        
+                #print(f"found interval [{x_vals[i]}, {x_vals[i]}]")
+        print(f"\nFound intervals: {intervals}\n")
         return intervals
     
     # ==================== МЕТОД ДИХОТОМИИ ====================
@@ -102,6 +104,7 @@ class NonlinearSolver:
         
         for iteration in range(max_iter):
             c = (a + b) / 2
+            print(f"i = {iteration} x = {c} f(x) = {self.f(c)} [{a}, {b}] abs(b - a) / 2 = {abs(b - a) / 2}")
             history.append(c)
             
             if abs(b - a) / 2 < eps:
@@ -128,6 +131,7 @@ class NonlinearSolver:
         
         for iteration in range(max_iter):
             x_next = self.phi(x_prev)
+            print(f"i = {iteration} x = {x_next} f(x) = {self.f(x_next)} x_prev = {x_prev} f(x_prev) = {self.f(x_prev)} x_next - x_prev = {x_next - x_prev}")
             history.append(x_next)
             
             if abs(x_next - x_prev) < eps:
@@ -147,6 +151,7 @@ class NonlinearSolver:
         history = [x_prev]
         
         for iteration in range(max_iter):
+            print(f"i = {iteration} x = {x_prev} f(x) = {self.f(x_prev)} ")
             f_val = self.f(x_prev)
             f_prime_val = self.f_prime(x_prev)
             
@@ -155,7 +160,7 @@ class NonlinearSolver:
             
             x_next = x_prev - f_val / f_prime_val
             history.append(x_next)
-            
+            print(f"abs(x_next - x_prev) = {abs(x_next - x_prev)}")
             if abs(x_next - x_prev) < eps:
                 return x_next, iteration + 1, history
             

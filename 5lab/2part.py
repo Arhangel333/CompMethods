@@ -7,7 +7,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from sympy import symbols, lambdify, sympify
-from first_part import NonlinearSolver  # Импортируем класс из 1-го задания
+from first_part import NonlinearSolver  
 import input as inp
 
 # ==================== ВВОД СИСТЕМЫ ====================
@@ -98,7 +98,8 @@ def newton_system(x0, y0, eps, max_iter=50):
         x_new = x + dx
         y_new = y + dy
         history.append([x_new, y_new])
-        
+        if(inp.output):
+            print(f"dx = {dx} dy = {dy} x = {x} y = {y} x_new = {x_new} y_new = {y_new} max(abs(dx), abs(dy)) = {max(abs(dx), abs(dy))}")
         if max(abs(dx), abs(dy)) < eps:
             return np.array([x_new, y_new]), it + 1, history
         
@@ -137,6 +138,8 @@ def simple_iteration_system(x0, y0, eps, max_iter=200):
             x_new = x - alpha * f1(x, y)
             y_new = y - alpha * f2(x, y)
             
+            if(inp.output):
+                print(f"abs(x_new) = {abs(x_new)} abs(y_new) = {abs(y_new)}")
             if abs(x_new) > 1e10 or abs(y_new) > 1e10:
                 print(f"   Расходится на итерации {it+1}")
                 return np.array([x, y]), it, history
