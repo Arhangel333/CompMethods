@@ -1,0 +1,8 @@
+venv
+*.png
+*.txt
+__pycache__
+
+execute_me.sh
+
+*.docx
