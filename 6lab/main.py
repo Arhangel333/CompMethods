@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 import sympy as sp
 import input
 from prettytable import PrettyTable
@@ -77,6 +78,161 @@ def analyze_step_effect(f, analytic_func, x0, y0, x_end, h_values):
         })
     
     return results
+
+
+def plot_comparison(x_vals, y_analytic, y_numeric, method_name, h, x0, x_end):
+    """Построение графика сравнения численного и аналитического решений"""
+    plt.figure(figsize=(12, 8))
+    
+    plt.subplot(2, 2, 1)
+    plt.plot(x_vals, y_analytic, 'b-', linewidth=2, label='Аналитическое решение')
+    plt.plot(x_vals, y_numeric, 'ro--', markersize=4, linewidth=1, label=f'{method_name}, h={h}')
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.title(f'{method_name}: сравнение с аналитическим решением\n(h={h})')
+    plt.legend()
+    plt.grid(True)
+    
+    plt.subplot(2, 2, 2)
+    error = np.abs(y_numeric - y_analytic)
+    plt.semilogy(x_vals, error, 'g-', linewidth=2)
+    plt.xlabel('x')
+    plt.ylabel('|y_numeric - y_analytic|')
+    plt.title(f'Погрешность {method_name} (логарифмическая шкала)')
+    plt.grid(True)
+    
+    plt.tight_layout()
+    return plt
+
+def plot_step_effect(x0, y0, x_end, f, analytic_func, h_values, method_name):
+    """Исследование влияния шага на погрешность с графиками"""
+    
+    plt.figure(figsize=(14, 10))
+    
+    # График 1: решения с разными шагами
+    plt.subplot(2, 2, 1)
+    x_fine = np.linspace(x0, x_end, 1000)
+    y_fine = analytic_func(x_fine)
+    plt.plot(x_fine, y_fine, 'k-', linewidth=2, label='Аналитическое решение', alpha=0.7)
+    
+    colors = ['r', 'g', 'b', 'm']
+    for i, h in enumerate(h_values):
+        if method_name == "Euler-Cauchy":
+            x_vals, y_vals = euler_cauchy(f, x0, y0, x_end, h)
+        else:
+            x_vals, y_vals = runge_kutta_4(f, x0, y0, x_end, h)
+        
+        plt.plot(x_vals, y_vals, 'o--', color=colors[i], markersize=3, 
+                linewidth=1, label=f'h={h}', alpha=0.7)
+    
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.title(f'{method_name}: решения с разными шагами')
+    plt.legend()
+    plt.grid(True)
+    
+    # График 2: зависимость погрешности от шага
+    plt.subplot(2, 2, 2)
+    h_list = []
+    errors = []
+    
+    for h in h_values:
+        if method_name == "Euler-Cauchy":
+            x_vals, y_vals = euler_cauchy(f, x0, y0, x_end, h)
+        else:
+            x_vals, y_vals = runge_kutta_4(f, x0, y0, x_end, h)
+        
+        y_analytic = np.array([analytic_func(xi) for xi in x_vals])
+        max_error = np.max(np.abs(y_vals - y_analytic))
+        
+        h_list.append(h)
+        errors.append(max_error)
+    
+    plt.loglog(h_list, errors, 'bo-', linewidth=2, markersize=8)
+    plt.xlabel('Шаг h (логарифмическая шкала)')
+    plt.ylabel('Максимальная погрешность (логарифмическая шкала)')
+    plt.title(f'{method_name}: зависимость погрешности от шага')
+    plt.grid(True)
+    
+    # Добавляем теоретические линии для сравнения
+    h_theory = np.array([h_list[0], h_list[-1]])
+    if method_name == "Euler-Cauchy":
+        error_theory_2nd = errors[0] * (h_theory / h_list[0])**2
+        plt.loglog(h_theory, error_theory_2nd, 'r--', linewidth=1.5, 
+                  label='Теория (2-й порядок)')
+    else:
+        error_theory_4th = errors[0] * (h_theory / h_list[0])**4
+        plt.loglog(h_theory, error_theory_4th, 'r--', linewidth=1.5, 
+                  label='Теория (4-й порядок)')
+    
+    plt.legend()
+    
+    # График 3: погрешность вдоль интервала для разных шагов
+    plt.subplot(2, 2, 3)
+    for i, h in enumerate(h_values[:3]):  # показываем первые 3 шага для наглядности
+        if method_name == "Euler-Cauchy":
+            x_vals, y_vals = euler_cauchy(f, x0, y0, x_end, h)
+        else:
+            x_vals, y_vals = runge_kutta_4(f, x0, y0, x_end, h)
+        
+        y_analytic = np.array([analytic_func(xi) for xi in x_vals])
+        error = np.abs(y_vals - y_analytic)
+        
+        plt.semilogy(x_vals, error, 'o-', color=colors[i], markersize=3, 
+                    linewidth=1, label=f'h={h}')
+    
+    plt.xlabel('x')
+    plt.ylabel('Погрешность (логарифмическая шкала)')
+    plt.title(f'{method_name}: распределение погрешности по x')
+    plt.legend()
+    plt.grid(True)
+    
+    plt.tight_layout()
+    return plt
+
+def plot_both_methods_comparison(x0, y0, x_end, f, analytic_func, h):
+    """Сравнение двух методов при одинаковом шаге"""
+    
+    # Решаем обоими методами
+    x_ec, y_ec = euler_cauchy(f, x0, y0, x_end, h)
+    x_rk, y_rk = runge_kutta_4(f, x0, y0, x_end, h)
+    
+    # Точное решение
+    x_fine = np.linspace(x0, x_end, 500)
+    y_fine = analytic_func(x_fine)
+    
+    plt.figure(figsize=(14, 6))
+    
+    # График 1: сравнение решений
+    plt.subplot(1, 2, 1)
+    plt.plot(x_fine, y_fine, 'k-', linewidth=2, label='Аналитическое', alpha=0.8)
+    plt.plot(x_ec, y_ec, 'ro-', markersize=4, linewidth=1, label='Эйлер-Коши', alpha=0.7)
+    plt.plot(x_rk, y_rk, 'bs-', markersize=4, linewidth=1, label='Рунге-Кутта 4', alpha=0.7)
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.title(f'Сравнение методов при h={h}')
+    plt.legend()
+    plt.grid(True)
+    
+    # График 2: погрешности
+    plt.subplot(1, 2, 2)
+    y_analytic_ec = np.array([analytic_func(xi) for xi in x_ec])
+    y_analytic_rk = np.array([analytic_func(xi) for xi in x_rk])
+    
+    error_ec = np.abs(y_ec - y_analytic_ec)
+    error_rk = np.abs(y_rk - y_analytic_rk)
+    
+    plt.semilogy(x_ec, error_ec, 'ro-', markersize=4, linewidth=1, label='Эйлер-Коши')
+    plt.semilogy(x_rk, error_rk, 'bs-', markersize=4, linewidth=1, label='Рунге-Кутта 4')
+    plt.xlabel('x')
+    plt.ylabel('Погрешность (логарифмическая шкала)')
+    plt.title(f'Сравнение погрешностей при h={h}')
+    plt.legend()
+    plt.grid(True)
+    
+    plt.tight_layout()
+    return plt
+
 
 def main():
     print("="*80)
@@ -220,6 +376,35 @@ def main():
         print(f"  Рунге-Кутта4: ошибка уменьшилась в {ratio_rk4:.2f} раз (теоретически ~16)")
     
 
+
+
+
+
+ # График 1: сравнение методов при основном шаге
+    plot_both_methods_comparison(x0, y0, x_end, f, analytic_func, h_main)
+    plt.savefig('methods_comparison.png', dpi=150, bbox_inches='tight')
+    print("✓ График 'methods_comparison.png' сохранён")
+    
+    # График 2: влияние шага для метода Эйлера-Коши
+    h_values = [h_main, h_main/2, h_main/4, h_main/8]
+    plot_step_effect(x0, y0, x_end, f, analytic_func, h_values, "Euler-Cauchy")
+    plt.savefig('euler_cauchy_step_effect.png', dpi=150, bbox_inches='tight')
+    print("✓ График 'euler_cauchy_step_effect.png' сохранён")
+    
+    # График 3: влияние шага для метода Рунге-Кутты 4
+    plot_step_effect(x0, y0, x_end, f, analytic_func, h_values, "Runge-Kutta 4")
+    plt.savefig('runge_kutta_step_effect.png', dpi=150, bbox_inches='tight')
+    print("✓ График 'runge_kutta_step_effect.png' сохранён")
+    
+    # График 4: сравнение при основном шаге (детальный)
+    plot_comparison(x_euler, y_analytic, y_euler, "Эйлер-Коши", h_main, x0, x_end)
+    plt.savefig('euler_cauchy_comparison.png', dpi=150, bbox_inches='tight')
+    print("✓ График 'euler_cauchy_comparison.png' сохранён")
+    
+    plot_comparison(x_rk4, y_analytic, y_rk4, "Рунге-Кутта 4", h_main, x0, x_end)
+    plt.savefig('runge_kutta_comparison.png', dpi=150, bbox_inches='tight')
+    print("✓ График 'runge_kutta_comparison.png' сохранён")
+        
 
 if __name__ == "__main__":
     main()
