@@ -1,0 +1,20 @@
+ОГЛАВЛЕНИЕ ОТЧЕТОВ
+==================================================
+
+Всего отчетов: 6
+
+1. Kurnosov_lab1-2_rep
+2. Kurnosov_lab1-2_report
+3. Kurnosov_lab3-4_rep
+4. Kurnosov_lab3-4_report
+5. Kurnosov_lab5_report
+6. Kurnosov_lab6_report
+
+==================================================
+Файлы, включенные в объединенный отчет:
+1. Kurnosov_lab1-2_rep.docx
+2. Kurnosov_lab1-2_report.docx
+3. Kurnosov_lab3-4_rep.docx
+4. Kurnosov_lab3-4_report.docx
+5. Kurnosov_lab5_report.docx
+6. Kurnosov_lab6_report.docx
