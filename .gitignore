@@ -1,3 +1,7 @@
 *.zip
+<<<<<<< HEAD
 *.docx
 reports/
+=======
+*.docx
+>>>>>>> c854532352492b61ccbcdc962f8ee65fad20e2bf
