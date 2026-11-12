@@ -5,7 +5,7 @@ import os
 TASK = {  #4 variant
     'a': 1.0,
     'L': np.pi,
-    'T_final': 0.1,
+    'T_final': 1.0,
     'equation_type': 'homogeneous',
     'u_init': lambda x: np.sin(x),
     'u_exact': lambda x, t, a=1.0: np.exp(-a * t) * np.sin(x),
@@ -27,17 +27,40 @@ TASK = {  #4 variant
 } """
 
 
+def progonka(a_sub, b_main, c_sup, d):
+    """
+    Решает трехдиагональную систему методом прогонки.
+    a_sub: нижняя диагональ (длина N-1)
+    b_main: главная диагональ (длина N)
+    c_sup: верхняя диагональ (длина N-1)
+    d: правая часть (длина N)
+    """
+    n = len(d)
+    alpha = np.zeros(n)
+    beta = np.zeros(n)
+    x = np.zeros(n)
+
+    # Прямой ход
+    alpha[0] = -c_sup[0] / b_main[0]
+    beta[0] = d[0] / b_main[0]
+    
+    for i in range(1, n):
+        denom = b_main[i] + a_sub[i-1] * alpha[i-1]
+        alpha[i] = -c_sup[i] / denom if i < n-1 else 0
+        beta[i] = (d[i] - a_sub[i-1] * beta[i-1]) / denom
+
+    # Обратный ход
+    x[n-1] = beta[n-1]
+    for i in range(n-2, -1, -1):
+        x[i] = alpha[i] * x[i+1] + beta[i]
+        
+    return x
+
 def solve(cfg, Nx, Nt, scheme='crank_nicolson', approx='2pt_2nd'):
     a, L, T = cfg['a'], cfg['L'], cfg['T_final']
     h, tau = L / Nx, T / Nt
-    gamma = a * tau / h**2       #Число Куранта-Фурье      - показывает отношение шага по времени к времени, за которое тепло успевает «протечь» через одну ячейку сетки размером
+    gamma = a * tau / h**2
     
-    """ Для Явной схемы: Это параметр устойчивости. Если 
-γ>0.5 , тепло «перескакивает» через узлы, и решение мгновенно взрывается (уходит в бесконечность).
-Для Неявной и Кранка-Николсон: 
-γ определяет «вес» вклада соседних узлов. Эти схемы устойчивы при любом γ, но при больших 
-γ (очень крупный шаг по времени) решение становится излишне сглаженным. """
-
     x = np.linspace(0, L, Nx + 1)
     t = np.linspace(0, T, Nt + 1)
     
@@ -57,7 +80,7 @@ def solve(cfg, Nx, Nt, scheme='crank_nicolson', approx='2pt_2nd'):
             if cfg['bc_type'] == 'dirichlet':
                 u_new[0] = cfg['bc_left'](tn1)
                 u_new[-1] = cfg['bc_right'](tn1)
-            else:  # neumann
+            else:
                 mu_L, mu_R = cfg['bc_left_der'](tn1), cfg['bc_right_der'](tn1)
                 if approx == '2pt_1st':
                     u_new[0] = u_new[1] - h * mu_L
@@ -73,85 +96,80 @@ def solve(cfg, Nx, Nt, scheme='crank_nicolson', approx='2pt_2nd'):
                     u_new[-1] = u[-1] + gamma*(u_ghost_R - 2*u[-1] + u[-2])
         
         else:  # Implicit / Crank-Nicolson
-            A = np.zeros((N_eq, N_eq))
-            rhs = np.zeros(N_eq)
+            # Инициализация диагоналей и правой части
+            a_sub = np.zeros(N_eq - 1)
+            b_main = np.zeros(N_eq)
+            c_sup = np.zeros(N_eq - 1)
+            d = np.zeros(N_eq)
             
-            # Внутренние узлы i=1..Nx-1
+            # Внутренние узлы
             for i in range(1, Nx):
                 if scheme == 'implicit':
-                    A[i, i-1] = -gamma
-                    A[i, i] = 1 + 2*gamma
-                    A[i, i+1] = -gamma
-                    rhs[i] = u[i]
-                else:  # crank_nicolson
-                    A[i, i-1] = -gamma/2
-                    A[i, i] = 1 + gamma
-                    A[i, i+1] = -gamma/2
-                    rhs[i] = (gamma/2)*u[i-1] + (1-gamma)*u[i] + (gamma/2)*u[i+1]
+                    a_sub[i-1] = -gamma
+                    b_main[i] = 1 + 2*gamma
+                    c_sup[i] = -gamma
+                    d[i] = u[i]
+                else:
+                    a_sub[i-1] = -gamma/2
+                    b_main[i] = 1 + gamma
+                    c_sup[i] = -gamma/2
+                    d[i] = (gamma/2)*u[i-1] + (1-gamma)*u[i] + (gamma/2)*u[i+1]
             
+            # Граничные условия
             if cfg['bc_type'] == 'dirichlet':
-                A[0, 0] = 1.0
-                rhs[0] = cfg['bc_left'](tn1)
-                A[-1, -1] = 1.0
-                rhs[-1] = cfg['bc_right'](tn1)
-            else:  # neumann
+                b_main[0] = 1.0;  d[0] = cfg['bc_left'](tn1)
+                b_main[-1] = 1.0; d[-1] = cfg['bc_right'](tn1)
+            else:
                 mu_L, mu_R = cfg['bc_left_der'](tn1), cfg['bc_right_der'](tn1)
                 mu_L_n, mu_R_n = cfg['bc_left_der'](tn), cfg['bc_right_der'](tn)
                 
                 if approx == '2pt_1st':
-                    A[0, 0], A[0, 1] = 1.0, -1.0
-                    rhs[0] = -h * mu_L
-                    A[-1, -1], A[-1, -2] = 1.0, -1.0
-                    rhs[-1] = h * mu_R
-                    
-                elif approx == '3pt_2nd':
-                    A[0, 0], A[0, 1], A[0, 2] = 3.0, -4.0, 1.0
-                    rhs[0] = -2*h*mu_L
-                    
-                    if scheme == 'implicit':
-                        A[1, 0] = 0
-                        A[1, 1] = 3 + 2*gamma
-                        A[1, 2] = -2*gamma
-                        rhs[1] = 3*u[1] - 2*gamma*h*mu_L
-                    else:
-                        A[1, 0] = 0
-                        A[1, 1] = 3 + gamma
-                        A[1, 2] = -gamma
-                        rhs[1] = 3 * ((gamma/2)*u[0] + (1-gamma)*u[1] + (gamma/2)*u[2]) - gamma*h*mu_L
-                    
-                    A[-1, -1], A[-1, -2], A[-1, -3] = 3.0, -4.0, 1.0
-                    rhs[-1] = 2*h*mu_R
-                    
-                    if scheme == 'implicit':
-                        A[-2, -1] = 0
-                        A[-2, -2] = 3 + 2*gamma
-                        A[-2, -3] = -2*gamma
-                        rhs[-2] = 3*u[-2] + 2*gamma*h*mu_R
-                    else:
-                        A[-2, -1] = 0
-                        A[-2, -2] = 3 + gamma
-                        A[-2, -3] = -gamma
-                        rhs[-2] = 3 * ((gamma/2)*u[-1] + (1-gamma)*u[-2] + (gamma/2)*u[-3]) + gamma*h*mu_R
+                    b_main[0] = 1.0; c_sup[0] = -1.0; d[0] = -h * mu_L
+                    b_main[-1] = 1.0; a_sub[-1] = -1.0; d[-1] = h * mu_R
                     
                 elif approx == '2pt_2nd':
                     if scheme == 'implicit':
-                        A[0, 0] = 1 + 2*gamma
-                        A[0, 1] = -2*gamma
-                        rhs[0] = u[0] - 2*gamma*h*mu_L
-                        
-                        A[-1, -1] = 1 + 2*gamma
-                        A[-1, -2] = -2*gamma
-                        rhs[-1] = u[-1] + 2*gamma*h*mu_R
-                    else:  # crank_nicolson
-                        A[0, 0] = 1 + gamma
-                        A[0, 1] = -gamma
-                        rhs[0] = (1-gamma)*u[0] + gamma*u[1] - gamma*h*(mu_L + mu_L_n)
-                        
-                        A[-1, -1] = 1 + gamma
-                        A[-1, -2] = -gamma
-                        rhs[-1] = (1-gamma)*u[-1] + gamma*u[-2] + gamma*h*(mu_R + mu_R_n)
+                        b_main[0] = 1 + 2*gamma; c_sup[0] = -2*gamma
+                        d[0] = u[0] - 2*gamma*h*mu_L
+                        b_main[-1] = 1 + 2*gamma; a_sub[-1] = -2*gamma
+                        d[-1] = u[-1] + 2*gamma*h*mu_R
+                    else:
+                        b_main[0] = 1 + gamma; c_sup[0] = -gamma
+                        d[0] = (1-gamma)*u[0] + gamma*u[1] - gamma*h*(mu_L + mu_L_n)
+                        b_main[-1] = 1 + gamma; a_sub[-1] = -gamma
+                        d[-1] = (1-gamma)*u[-1] + gamma*u[-2] + gamma*h*(mu_R + mu_R_n)
+                
+                elif approx == '3pt_2nd':
+                    # 3pt_2nd ломает трехдиагональность (появляется A[0,2]).
+                    # Для него используем плотный решатель.
+                    A = np.zeros((N_eq, N_eq))
+                    A[np.arange(N_eq), np.arange(N_eq)] = b_main
+                    A[np.arange(1, N_eq), np.arange(N_eq-1)] = a_sub
+                    A[np.arange(N_eq-1), np.arange(1, N_eq)] = c_sup
+                    
+                    A[0, 0], A[0, 1], A[0, 2] = 3.0, -4.0, 1.0
+                    d[0] = -2*h*mu_L
+                    if scheme == 'implicit':
+                        A[1, 1] = 3 + 2*gamma; A[1, 2] = -2*gamma; d[1] = 3*u[1] - 2*gamma*h*mu_L
+                    else:
+                        A[1, 1] = 3 + gamma; A[1, 2] = -gamma
+                        d[1] = 3 * ((gamma/2)*u[0] + (1-gamma)*u[1] + (gamma/2)*u[2]) - gamma*h*mu_L
+                    
+                    A[-1, -1], A[-1, -2], A[-1, -3] = 3.0, -4.0, 1.0
+                    d[-1] = 2*h*mu_R
+                    if scheme == 'implicit':
+                        A[-2, -2] = 3 + 2*gamma; A[-2, -3] = -2*gamma; d[-2] = 3*u[-2] + 2*gamma*h*mu_R
+                    else:
+                        A[-2, -2] = 3 + gamma; A[-2, -3] = -gamma
+                        d[-2] = 3 * ((gamma/2)*u[-1] + (1-gamma)*u[-2] + (gamma/2)*u[-3]) + gamma*h*mu_R
+                    
+                    u_new = np.linalg.solve(A, d)
+                    u = u_new
+                    U[n+1] = u.copy()
+                    continue # Переходим к следующему шагу времени
             
-            u_new = np.linalg.solve(A, rhs)
+            # Решение трехдиагональной системы прогонкой
+            u_new = progonka(a_sub, b_main, c_sup, d)
 
         u = u_new
         U[n+1] = u.copy()
@@ -222,7 +240,7 @@ def plot_error_vs_time(cfg, aprx='2pt_2nd', filename='lab5_error_vs_time.png'):
     plt.xlabel('Время t')
     plt.ylabel('Максимальная погрешность (логарифмическая шкала)')
     plt.title('Зависимость максимальной погрешности от времени')
-    plt.yscale('log')  # Логарифмическая шкала для наглядности порядков ошибки
+    #plt.yscale('log')  # Логарифмическая шкала для наглядности порядков ошибки
     plt.legend()
     plt.grid(True, which="both", ls="--", alpha=0.7)
     

@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 L = np.pi #координатный промежуток всей сетки
 
-T = 1.0     #временной промежуток всей сетки
+T = 1.0 #np.pi * 2 * 5     #временной промежуток всей сетки
 a = 1.0     #коэфф из уравнения
 
 
@@ -103,7 +103,110 @@ def neayvn(x, tau, h, N, M, a):
 
     return u
         
+# ============================================================
+# ТРИ ВАРИАНТА АППРОКСИМАЦИИ ГРАНИЧНЫХ УСЛОВИЙ (ДЛЯ НЕЯВНОЙ СХЕМЫ)
+# ============================================================
+
+def neayvn_bc1(x, tau, h, N, M, a):
+    """Неявная схема с граничными условиями 1-го порядка (двухточечные)"""
+    u = np.zeros((N + 1, M + 1))
+    u[0, :] = np.sin(x) + np.cos(x)
+    psi = -a * (np.sin(x) + np.cos(x))
+    u[1, :] = u[0, :] + tau * psi + (tau**2 / 2) * a**2 * (-u[0, :])
+    
+    sigma = (a * tau / h)**2
+    
+    for n in range(1, N):
+        size = M - 1
+        a_sub = np.full(size - 1, -sigma)
+        b_main = np.full(size, 1 + 2 * sigma)
+        c_sup = np.full(size - 1, -sigma)
+        d = 2 * u[n, 1:-1] - u[n-1, 1:-1]
         
+        # Вшиваем граничные условия 1-го порядка в матрицу
+        b_main[0] = 1 + 2 * sigma - sigma / (1 + h)
+        b_main[-1] = 1 + 2 * sigma - sigma / (1 - h)
+        
+        u_internal = progonka(a_sub, b_main, c_sup, d)
+        u[n+1, 1:-1] = u_internal
+        
+        # Восстанавливаем значения на границах
+        u[n+1, 0] = u[n+1, 1] / (1 + h)
+        u[n+1, -1] = u[n+1, -2] / (1 - h)
+    
+    return u
+
+
+def neayvn_bc2(x, tau, h, N, M, a):
+    """Неявная схема с граничными условиями 2-го порядка (трехточечные)"""
+    u = np.zeros((N + 1, M + 1))
+    u[0, :] = np.sin(x) + np.cos(x)
+    psi = -a * (np.sin(x) + np.cos(x))
+    u[1, :] = u[0, :] + tau * psi + (tau**2 / 2) * a**2 * (-u[0, :])
+    
+    sigma = (a * tau / h)**2
+    
+    for n in range(1, N):
+        size = M - 1
+        a_sub = np.full(size - 1, -sigma)
+        b_main = np.full(size, 1 + 2 * sigma)
+        c_sup = np.full(size - 1, -sigma)
+        d = 2 * u[n, 1:-1] - u[n-1, 1:-1]
+        
+        # Вшиваем граничные условия 2-го порядка (трехточечные) в матрицу
+        # Левая граница: u_0 = (4*u_1 - u_2) / (3 + 2*h)
+        b_main[0] = 1 + 2 * sigma - 4 * sigma / (3 + 2 * h)
+        c_sup[0] = -sigma + sigma / (3 + 2 * h)
+        
+        # Правая граница: u_M = (4*u_{M-1} - u_{M-2}) / (3 - 2*h)
+        a_sub[-1] = -sigma + sigma / (3 - 2 * h)
+        b_main[-1] = 1 + 2 * sigma - 4 * sigma / (3 - 2 * h)
+        
+        u_internal = progonka(a_sub, b_main, c_sup, d)
+        u[n+1, 1:-1] = u_internal
+        
+        # Восстанавливаем значения на границах
+        u[n+1, 0] = (4 * u[n+1, 1] - u[n+1, 2]) / (3 + 2 * h)
+        u[n+1, -1] = (4 * u[n+1, -2] - u[n+1, -3]) / (3 - 2 * h)
+    
+    return u
+
+
+def neayvn_bc3(x, tau, h, N, M, a):
+    """Неявная схема с граничными условиями 2-го порядка (двухточечные)"""
+    u = np.zeros((N + 1, M + 1))
+    u[0, :] = np.sin(x) + np.cos(x)
+    psi = -a * (np.sin(x) + np.cos(x))
+    u[1, :] = u[0, :] + tau * psi + (tau**2 / 2) * a**2 * (-u[0, :])
+    
+    sigma = (a * tau / h)**2
+    
+    for n in range(1, N):
+        size = M - 1
+        a_sub = np.full(size - 1, -sigma)
+        b_main = np.full(size, 1 + 2 * sigma)
+        c_sup = np.full(size - 1, -sigma)
+        d = 2 * u[n, 1:-1] - u[n-1, 1:-1]
+        
+        # Коэффициенты для границ (Тейлор + PDE)
+        K_L = 1 + h + 1 / (2 * sigma)
+        K_R = 1 - h + 1 / (2 * sigma)
+        
+        # Вшиваем граничные условия в матрицу
+        b_main[0] = 1 + 2 * sigma - sigma / K_L
+        d[0] += (u[n, 0] - 0.5 * u[n-1, 0]) / K_L
+        
+        b_main[-1] = 1 + 2 * sigma - sigma / K_R
+        d[-1] += (u[n, -1] - 0.5 * u[n-1, -1]) / K_R
+        
+        u_internal = progonka(a_sub, b_main, c_sup, d)
+        u[n+1, 1:-1] = u_internal
+        
+        # Восстанавливаем значения на границах
+        u[n+1, 0] = (u[n+1, 1] + (1/sigma)*u[n, 0] - (1/(2*sigma))*u[n-1, 0]) / K_L
+        u[n+1, -1] = (u[n+1, -2] + (1/sigma)*u[n, -1] - (1/(2*sigma))*u[n-1, -1]) / K_R
+    
+    return u
         
         
         
@@ -168,8 +271,9 @@ def yavn_bc12(x, tau, h, N, M, a, bc=1):
             u[n+1, -1] = (4 * u[n+1, -2] - u[n+1, -3]) / (3 - 2 * h)
     return u
 
+""" 
 def yavn_bc2(x, tau, h, N, M, a):
-    """2-й порядок, трехточечная аппроксимация"""
+    #2-й порядок, трехточечная аппроксимация
     u = np.zeros((N + 1, M + 1))
     u[0, :] = np.sin(x) + np.cos(x)
     psi = -a * (np.sin(x) + np.cos(x))
@@ -181,7 +285,8 @@ def yavn_bc2(x, tau, h, N, M, a):
         # Граничные условия 2-го порядка (трехточечные)
         u[n+1, 0] = (4 * u[n+1, 1] - u[n+1, 2]) / (3 + 2 * h)
         u[n+1, -1] = (4 * u[n+1, -2] - u[n+1, -3]) / (3 - 2 * h)
-    return u
+    return u 
+"""
 
 def yavn_bc3(x, tau, h, N, M, a):
     """Явная схема с двухточечной аппроксимацией граничных условий 2-го порядка (через Тейлора и уравнение)"""
@@ -367,8 +472,8 @@ err_exp_big = np.max([np.max(np.abs(u_exp_big[n, :] - u_exact(x, t[n], a))) for 
 u_impl_big = neayvn(x, tau_big, h, N_big, M, a)
 err_impl_big = np.max([np.max(np.abs(u_impl_big[n, :] - u_exact(x, t[n], a))) for n in range(N_big + 1)])
 
-print(f"Погрешность явной схемы (большой tau):   {err_exp_big:.6e}  <-- ВЗРЫВ!")
-print(f"Погрешность неявной схемы (большой tau): {err_impl_big:.6e} <-- Стабильно")
+print(f"Погрешность явной схемы (большой tau):   {err_exp_big:.6e}")
+print(f"Погрешность неявной схемы (большой tau): {err_impl_big:.6e}")
 
 # Визуализация "взрыва"
 plt.figure(figsize=(10, 6))
@@ -399,3 +504,70 @@ err_bc3 = np.max([np.max(np.abs(u_bc3[n, :] - u_exact(x, t[n], a))) for n in ran
 print(f"1. Двухточечная, 1-й порядок:     {err_bc1:.6e}")
 print(f"2. Трехточечная, 2-й порядок:     {err_bc2:.6e}")
 print(f"3. Двухточечная, 2-й порядок:     {err_bc3:.6e}")
+
+
+
+# ============================================================
+# СРАВНЕНИЕ ТРЕХ ВИДОВ АППРОКСИМАЦИИ (НЕЯВНАЯ схема)
+# ============================================================
+print("\n--- Сравнение трех видов аппроксимации (НЕЯВНАЯ схема) ---")
+
+u_impl_bc1 = neayvn_bc1(x, tau, h, N, M, a)
+u_impl_bc2 = neayvn_bc2(x, tau, h, N, M, a)
+u_impl_bc3 = neayvn_bc3(x, tau, h, N, M, a)
+
+err_impl_bc1 = np.max([np.max(np.abs(u_impl_bc1[n, :] - u_exact(x, t[n], a))) for n in range(N + 1)])
+err_impl_bc2 = np.max([np.max(np.abs(u_impl_bc2[n, :] - u_exact(x, t[n], a))) for n in range(N + 1)])
+err_impl_bc3 = np.max([np.max(np.abs(u_impl_bc3[n, :] - u_exact(x, t[n], a))) for n in range(N + 1)])
+
+print(f"1. Двухточечная, 1-й порядок:     {err_impl_bc1:.6e}")
+print(f"2. Трехточечная, 2-й порядок:     {err_impl_bc2:.6e}")
+print(f"3. Двухточечная, 2-й порядок:     {err_impl_bc3:.6e}")
+
+# График сравнения
+plt.figure(figsize=(10, 6))
+err_impl_bc1_t = [np.max(np.abs(u_impl_bc1[n, :] - u_exact(x, t[n], a))) for n in range(N + 1)]
+err_impl_bc2_t = [np.max(np.abs(u_impl_bc2[n, :] - u_exact(x, t[n], a))) for n in range(N + 1)]
+err_impl_bc3_t = [np.max(np.abs(u_impl_bc3[n, :] - u_exact(x, t[n], a))) for n in range(N + 1)]
+
+plt.plot(t, err_impl_bc1_t, 'b-', linewidth=2, label='1-й порядок (двухточечная)')
+plt.plot(t, err_impl_bc2_t, 'r--', linewidth=2, label='2-й порядок (трехточечная)')
+plt.plot(t, err_impl_bc3_t, 'g-.', linewidth=2, label='2-й порядок (двухточечная, Тейлор)')
+plt.xlabel('Время t')
+plt.ylabel('Максимальная погрешность')
+plt.title('Сравнение трех видов аппроксимации (НЕЯВНАЯ схема)')
+plt.legend()
+plt.grid(True)
+plt.savefig("6_implicit_bc_comparison.png", dpi=300, bbox_inches='tight')
+
+err_exp_1_t = []
+err_exp_2_t = []
+err_impl_1_t = []
+err_impl_2_t = []
+    
+
+for n in range(N + 1):
+    u_an = u_exact(x, t[n], a)
+    err_1y_t = np.max(np.abs(u_bc1[n, :] - u_an))
+    err_2y_t = np.max(np.abs(u_bc2[n, :] - u_an))
+    err_1_t = np.max(np.abs(u_impl_bc1[n, :] - u_an))
+    err_2_t = np.max(np.abs(u_impl_bc2[n, :] - u_an))
+    err_exp_1_t.append(err_1y_t)
+    err_exp_2_t.append(err_2y_t)
+    err_impl_1_t.append(err_1_t)
+    err_impl_2_t.append(err_2_t)
+    
+    
+plt.figure(figsize=(12, 7))
+
+plt.plot(t, err_exp_1_t, 'y-.', linewidth=2, label='1-й порядок (Явная))')
+plt.plot(t, err_exp_2_t, 'g-.', linewidth=2, label='2-й порядок (Явная)')
+plt.plot(t, err_impl_1_t, 'b--', linewidth=2, label='1-й порядок (Неявная)')
+plt.plot(t, err_impl_2_t, 'r--', linewidth=2, label='2-й порядок (Неявная)')
+plt.xlabel('Время t')
+plt.ylabel('Максимальная погрешность')
+plt.title('Сравнение видов аппроксимации (Явная и Неявная схема)')
+plt.legend()
+plt.grid(True)
+plt.savefig("6_err_from_t_comparison.png", dpi=300, bbox_inches='tight')
+
