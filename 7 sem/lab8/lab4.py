@@ -134,7 +134,7 @@ def plot_heatmap(xs, ys, u, title, ax):
 
 def plot_convergence():
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
-    taus = [T/10, T/20, T/40, T/80, T/160]
+    taus = [T/10, T/20, T/40, T/80, T/160, T/320, T/2000, T/4000, T/10000]
     errors_adi, errors_fds = [], []
     print("Исследование сходимости по tau...")
     for tau in taus:
